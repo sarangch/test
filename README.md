@@ -1,5 +1,7 @@
 # test
 
+## Data model ER diagram
+
 First I imported all the csv files into the Sqlite DB. So the created tables are:
 
 - tbl_brand
@@ -11,6 +13,9 @@ First I imported all the csv files into the Sqlite DB. So the created tables are
 With an intial analysis of the tables, the ER diagram of the data model seems as below:
 
 ![alt text](https://github.com/sarangch/test/blob/main/er_diagram.png)
+
+
+## Analyze the data
 
 To check if there is potential of creating a PRIMARY_KEY for each table, I executed the following SQLs:
 
@@ -99,7 +104,9 @@ SELECT * FROM x WHERE cnt > 1
 
 The emp_id **E658** is used for 2 different sales representatives!
 
-Then I checked the tbl_opp and found out that there are quite a few opportunities that are created using emp_id **E658**. 
+## Possible resolution of the duplicated key 
+
+I checked the tbl_opp and found out that there are quite a few opportunities that are created using emp_id **E658**. 
 
 I thought one of the ways of being able to trace the opportunity back to the right sales rep will be to look into the region in which the customer resides to match it with the region of the sales rep. Unfortunately there was no indication of the customer’s region. Hence, I tried to look at the different types of products from tbl_product and I executed the following SQL:
 
@@ -127,6 +134,103 @@ And the result was:
 
 I noticed that we have Service and Software products. I thought that different sales reps are expert in one of these fields. But when I checked the other sales reps, I noticed that they sold both software and service. 
 
-Since I couldn't find any other way of correcting the duplicated record, I decided to keep only one record of **E658** and change the other one to **E658-X** in the tbl_sales_rep.
+Since I couldn't find any other way of correcting the duplicated record, I decided to keep only one record of **E658** from the tbl_sales_rep.
 
+## Creating the view
+
+I tried to join all the tables and create a view using the following SQL:
+
+```sql
+CREATE VIEW insights AS 
+SELECT
+  opportunity_id, 
+  brand_name,
+  practice_name, 
+  practice_class_desc,
+  material_name,
+  primary_addon,
+  name,
+  sales_country,
+  sales_region, 
+  opportunity_name,
+  opportunity_amount,
+  stage_of_sale,
+  opportunity_created,
+  opportunity_closed,
+  opportunity_result_reason,
+  promotion
+FROM
+  tbl_opp, 
+  tbl_brand, 
+    tbl_customer, 
+  tbl_product, (
+    SELECT 
+      emp_id, 
+      name, 
+      sales_country, 
+      sales_region 
+    FROM 
+      tbl_sales_rep 
+    GROUP BY emp_id 
+    HAVING min(rowid)
+  ) x
+WHERE
+  tbl_opp.BRAND_ID = tbl_brand.brand_id
+  AND
+  tbl_opp.CUS_ID = tbl_customer.CUS_ID
+  AND
+  tbl_opp.MATERIAL_NUM = tbl_product.material_num
+  AND
+  tbl_opp.EMP_ID = x.emp_id;
+```
+
+## Extract the expected insights
+
+1. Find the 2021 sum of opportunity amount for the North America-West region, by sales representative.
+
+```sql
+SELECT 
+	name, 
+    SUM(opportunity_amount) AS total
+FROM 
+	insights 
+WHERE 
+	sales_country = 'United States' 
+    AND 
+    sales_region = 'west' 
+    AND 
+    strftime('%Y', DATE(opportunity_created)) = '2021'
+GROUP BY name
+```
+
+The result is: 
+
+name | total
+--- | --- 
+Jamya Sherman | 4334853
+
+2. Count the lost opportunities by reason. Show the counts by year, where each year is its own column.
+
+The best way to create such insight is to use **pivot_table**. But since the online Sqlite does not support the use of extensions, I used the following SQL to create the insights for the unique years of 2020, 2021 and 2022. 
+
+```sql
+WITH x AS (
+  SELECT 
+    opportunity_id,
+    opportunity_result_reason AS reason, 
+    strftime('%Y', date(opportunity_created)) AS year
+  FROM 
+    insights 
+  WHERE 
+    stage_of_sale = 'Loss' 
+)
+SELECT
+  reason,
+  COUNT(opportunity_id) filter (where year = '2020') as "2020",
+  COUNT(opportunity_id) filter (where year = '2021') as "2021",
+  COUNT(opportunity_id) filter (where year = '2022') as "2022"
+FROM x
+GROUP BY reason
+ORDER BY reason;
+```
 
