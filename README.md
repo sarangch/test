@@ -190,16 +190,16 @@ WHERE
 
 ```sql
 SELECT 
-	name, 
-    SUM(opportunity_amount) AS total
+  name, 
+  SUM(opportunity_amount) AS total
 FROM 
-	insights 
+  insights 
 WHERE 
-	sales_country = 'United States' 
-    AND 
-    sales_region = 'west' 
-    AND 
-    strftime('%Y', DATE(opportunity_created)) = '2021'
+  sales_country = 'United States' 
+  AND 
+  sales_region = 'west' 
+  AND 
+  strftime('%Y', DATE(opportunity_created)) = '2021'
 GROUP BY name
 ```
 
@@ -234,3 +234,26 @@ GROUP BY reason
 ORDER BY reason;
 ```
 
+The result is:
+
+reason | 2020 | 2021 | 2022
+--- | --- | --- | ---
+Brand | 9 | 7 | 14
+--- | --- | --- | ---
+Contract Terms | 7 | 8 | 9
+--- | --- | --- | ---
+Hardware | 5 | 11 | 9
+--- | --- | --- | ---
+Implementation Timing | 8 | 11 | 9
+--- | --- | --- | ---
+Infrastructure | 10 | 12 | 8
+--- | --- | --- | ---
+Integrations | 16 | 11 | 5
+--- | --- | --- | ---
+Pricing | 7 | 8 | 7
+--- | --- | --- | ---
+Product | 7 | 15 | 12
+--- | --- | --- | ---
+Relationship | 9 | 5 | 8
+--- | --- | --- | ---
+Support | 12 | 9 | 8
