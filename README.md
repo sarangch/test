@@ -1,15 +1,16 @@
 # test
 
-First I imported all the csv files into the Sqlite DB by adding a prefix as `temp_` to the table names. So the created tables are:
-- temp_tbl_brand
-- temp_tbl_customer
-- temp_tbl_opp
-- temp_tbl_product
-- temp_tbl_sales_rep
+First I imported all the csv files into the Sqlite DB. So the created tables are:
+
+- tbl_brand
+- tbl_customer
+- tbl_opp
+- tbl_product
+- tbl_sales_rep
 
 To check if there is potential of creating a PRIMARY_KEY for each table, I executed the following SQLs:
 
-#### temp_tbl_brand
+#### tbl_brand
 
 ```sql
 WITH x AS (
@@ -17,7 +18,7 @@ WITH x AS (
   	brand_id, 
   	COUNT(brand_name) AS cnt 
   FROM 
-  	temp_tbl_brand 
+  	tbl_brand 
   GROUP BY brand_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -34,7 +35,7 @@ WITH x AS (
   	cus_id, 
   	COUNT(practice_name) AS cnt 
   FROM 
-  	temp_tbl_customer
+  	tbl_customer
   GROUP BY cus_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -42,7 +43,7 @@ SELECT * FROM x WHERE cnt > 1
 
 :white_check_mark: No duplicates detected!
 
-#### temp_tbl_opp
+#### tbl_opp
 
 ```sql
 WITH x AS (
@@ -50,7 +51,7 @@ WITH x AS (
   	opportunity_id, 
   	COUNT(opportunity_name) AS cnt 
   FROM 
-  	temp_tbl_opp
+  	tbl_opp
   GROUP BY opportunity_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -59,7 +60,7 @@ SELECT * FROM x WHERE cnt > 1
 :white_check_mark: No duplicates detected!
 
 
-#### temp_tbl_product
+#### tbl_product
 
 ```sql
 WITH x AS (
@@ -67,7 +68,7 @@ WITH x AS (
   	material_num, 
   	COUNT(material_name) AS cnt 
   FROM 
-  	temp_tbl_product
+  	tbl_product
   GROUP BY material_num
 )
 SELECT * FROM x WHERE cnt > 1
@@ -76,7 +77,7 @@ SELECT * FROM x WHERE cnt > 1
 :white_check_mark: No duplicates detected!
 
 
-#### temp_tbl_sales_rep
+#### tbl_sales_rep
 
 ```sql
 WITH x AS (
@@ -84,7 +85,7 @@ WITH x AS (
   	emp_id, 
   	COUNT(name) AS cnt 
   FROM 
-  	temp_tbl_sales_rep
+  	tbl_sales_rep
   GROUP BY emp_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -93,4 +94,35 @@ SELECT * FROM x WHERE cnt > 1
 :x: Duplicates detected!
 
 The emp_id **E658** is used for 2 different sales representatives!
+
+Then I checked the tbl_opp and found out that there are quite a few opportunities that are created using emp_id **E658**. 
+
+I thought one of the ways of being able to trace the opportunity back to the right sales rep will be to look into the region in which the customer resides to match it with the region of the sales rep. Unfortunately there was no indication of the customer’s region. Hence, I tried to look at the different types of products from tbl_product and I executed the following SQL:
+
+```sql
+SELECT DISTINCT material_name FROM tbl_product
+```
+
+And the result was:
+
+- Generic Software III Cloud
+- Generic Software II
+- Migration Services - Extension
+- Generic Software II Cloud
+- Generic Software III
+- Partner A residual
+- Administration of Service X
+- Generic Software IV Cloud
+- Administration of Service Y
+- Data Vending Service
+- Migration Services
+- Generic Software I
+- Partner B residual 
+- Administration of Service Z
+
+
+I noticed that we have Service and Software products. I thought that different sales reps are expert in one of these fields. But when I checked the other sales reps, I noticed that they sold both software and service. 
+
+Since I couldn't find any other way of correcting the duplicated record, I decided to keep only one record of **E658** and change the other one to **E658-X** in the tbl_sales_rep.
+
 
