@@ -10,7 +10,7 @@ First I imported all the csv files into the Sqlite DB. So the created tables are
 
 With an intial analysis of the tables, the ER diagram of the data model seems as below:
 
-![alt text](<Database ER diagram (crow's foot).png>)
+![alt text](https://github.com/sarangch/test/er_diagram.png?raw=true)
 
 To check if there is potential of creating a PRIMARY_KEY for each table, I executed the following SQLs:
 
