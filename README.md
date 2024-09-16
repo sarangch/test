@@ -26,8 +26,7 @@ WITH x AS (
   SELECT 
   	brand_id, 
   	COUNT(brand_name) AS cnt 
-  FROM 
-  	tbl_brand 
+  FROM tbl_brand 
   GROUP BY brand_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -43,8 +42,7 @@ WITH x AS (
   SELECT 
   	cus_id, 
   	COUNT(practice_name) AS cnt 
-  FROM 
-  	tbl_customer
+  FROM tbl_customer
   GROUP BY cus_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -59,8 +57,7 @@ WITH x AS (
   SELECT 
   	opportunity_id, 
   	COUNT(opportunity_name) AS cnt 
-  FROM 
-  	tbl_opp
+  FROM tbl_opp
   GROUP BY opportunity_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -76,8 +73,7 @@ WITH x AS (
   SELECT 
   	material_num, 
   	COUNT(material_name) AS cnt 
-  FROM 
-  	tbl_product
+  FROM tbl_product
   GROUP BY material_num
 )
 SELECT * FROM x WHERE cnt > 1
@@ -93,8 +89,7 @@ WITH x AS (
   SELECT 
   	emp_id, 
   	COUNT(name) AS cnt 
-  FROM 
-  	tbl_sales_rep
+  FROM tbl_sales_rep
   GROUP BY emp_id
 )
 SELECT * FROM x WHERE cnt > 1
@@ -192,8 +187,7 @@ WHERE
 SELECT 
   name, 
   SUM(opportunity_amount) AS total
-FROM 
-  insights 
+FROM insights 
 WHERE 
   sales_country = 'United States' 
   AND 
@@ -219,10 +213,8 @@ WITH x AS (
     opportunity_id,
     opportunity_result_reason AS reason, 
     strftime('%Y', DATE(opportunity_created)) AS year
-  FROM 
-    insights 
-  WHERE 
-    stage_of_sale = 'Loss' 
+  FROM insights 
+  WHERE stage_of_sale = 'Loss' 
 )
 SELECT
   reason,
@@ -286,14 +278,14 @@ United States | 68 | 70
 ```sql
 WITH x AS (
   SELECT 
-  	name, 
-	SUM(opportunity_amount) AS amount, 
-	strftime('%Y', DATE(opportunity_created)) AS year 
+    name, 
+    SUM(opportunity_amount) AS amount, 
+    strftime('%Y', DATE(opportunity_created)) AS year 
   FROM insights 
   WHERE stage_of_sale = 'Win' 
   GROUP BY name, strftime('%Y', DATE(opportunity_created))
 ), y AS (
-	SELECT name, year, amount, row_number() OVER (PARTITION BY year ORDER BY amount DESC) rn FROM x
+  SELECT name, year, amount, row_number() OVER (PARTITION BY year ORDER BY amount DESC) rn FROM x
 )
 SELECT name, year FROM y WHERE rn = 1
 ```
@@ -305,3 +297,32 @@ name | year
 Cheyanne Salinas | 2020
 Anastasia Wells | 2021
 Korbin Frazier | 2022
+
+
+3. Find the average number of days between the creation and closure of an opportunity based on win/loss based on the year
+
+```sql
+WITH x AS (
+  SELECT 
+    stage_of_sale, 
+    strftime('%Y', DATE(opportunity_created)) as year, 
+    AVG(julianday(opportunity_closed) - julianday(opportunity_created)) as days 
+  FROM insights 
+  WHERE stage_of_sale IN ('Win', 'Loss') 
+  GROUP BY strftime('%Y', DATE(opportunity_created)), stage_of_sale
+)
+SELECT 
+  year, 
+  max(days) filter (where stage_of_sale = 'Win') as win, 
+  max(days) filter (where stage_of_sale = 'Loss') as loss 
+FROM x 
+GROUP BY year
+```
+
+The result is:
+
+year | win | loss
+--- | --- | ---
+2020 | -15.774193548387096 | -15.144444444444444
+2021 | -15.703056768558952 | -15.371134020618557
+2022 | -15.58252427184466 | -16.01123595505618
