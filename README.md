@@ -162,7 +162,7 @@ SELECT
 FROM
   tbl_opp, 
   tbl_brand, 
-    tbl_customer, 
+  tbl_customer, 
   tbl_product, (
     SELECT 
       emp_id, 
@@ -218,7 +218,7 @@ WITH x AS (
   SELECT 
     opportunity_id,
     opportunity_result_reason AS reason, 
-    strftime('%Y', date(opportunity_created)) AS year
+    strftime('%Y', DATE(opportunity_created)) AS year
   FROM 
     insights 
   WHERE 
@@ -226,9 +226,9 @@ WITH x AS (
 )
 SELECT
   reason,
-  COUNT(opportunity_id) filter (where year = '2020') as "2020",
-  COUNT(opportunity_id) filter (where year = '2021') as "2021",
-  COUNT(opportunity_id) filter (where year = '2022') as "2022"
+  COUNT(opportunity_id) FILTER (WHERE year = '2020') AS "2020",
+  COUNT(opportunity_id) FILTER (WHERE year = '2021') AS "2021",
+  COUNT(opportunity_id) FILTER (WHERE year = '2022') AS "2022"
 FROM x
 GROUP BY reason
 ORDER BY reason;
@@ -248,3 +248,60 @@ Pricing | 7 | 8 | 7
 Product | 7 | 15 | 12
 Relationship | 9 | 5 | 8
 Support | 12 | 9 | 8
+
+
+## Extra insights
+
+1. Show the percentage of won deals and the percentage of total amount won, based on the sales country.
+
+```sql
+WITH x AS (
+  SELECT 
+	sales_country, 
+    SUM(opportunity_amount) amount_total, 
+    SUM(case WHEN stage_of_sale = 'Win' THEN opportunity_amount ELSE 0 END) AS amount_won,
+    COUNT(opportunity_id) AS cnt_total, 
+    SUM(case WHEN stage_of_sale = 'Win' THEN 1 ELSE 0 END) AS cnt_won
+  FROM insights 
+  GROUP BY sales_country
+)
+SELECT 
+  sales_country, 
+  100 * cnt_won / cnt_total AS win_percentage, 
+  100 * amount_won / amount_total AS win_amount_percentage 
+FROM x
+```
+
+The result is:
+
+sales_country | win_percentage | win_amount_percentage
+--- | --- | ---
+Asia  | 66 | 72
+Canada | 65 | 68
+Europe | 73 | 69
+United States | 68 | 70
+
+2. Find the best sales rep of each year
+
+```sql
+WITH x AS (
+  SELECT 
+  	name, 
+	SUM(opportunity_amount) AS amount, 
+	strftime('%Y', DATE(opportunity_created)) AS year 
+  FROM insights 
+  WHERE stage_of_sale = 'Win' 
+  GROUP BY name, strftime('%Y', DATE(opportunity_created))
+), y AS (
+	SELECT name, year, amount, row_number() OVER (PARTITION BY year ORDER BY amount DESC) rn FROM x
+)
+SELECT name, year FROM y WHERE rn = 1
+```
+
+The result is:
+
+name | year
+--- | ---
+Cheyanne Salinas | 2020
+Anastasia Wells | 2021
+Korbin Frazier | 2022
